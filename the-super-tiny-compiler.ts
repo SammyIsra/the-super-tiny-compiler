@@ -561,7 +561,7 @@ const swallowJsDoc2 = 0;
 
 // Okay, so we define a `parser` function that accepts our array of `tokens`.
 /** Parser function, used  */
-function parser(tokens: Token[]) {
+function parser(tokens: Token[]): AST {
 
   // Again we keep a `current` variable that we will use as a cursor.
   let current = 0;
