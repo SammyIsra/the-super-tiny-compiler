@@ -676,12 +676,6 @@ export function parser(tokens: Token[]) {
     }
   }
 
-  if (token.type === "paren" && token.value === "(") {
-    // Again, if we haven't recognized the token type by now we're going to
-    // throw an error.
-    throw new TypeError(token.type);
-  }
-
   // Now, we're going to create our AST which will have a root which is a
   // `Program` node.
   let ast: SimpleAST = {
@@ -750,7 +744,7 @@ export function parser(tokens: Token[]) {
 
 // So we define a traverser function which accepts an AST and a
 // visitor. Inside we're going to define two functions...
-export function traverser(ast, visitor) {
+export function traverser(ast: SimpleAST, visitor) {
   // A `traverseArray` function that will allow us to iterate over an array and
   // call the next function that we will define: `traverseNode`.
   function traverseArray(array, parent) {
