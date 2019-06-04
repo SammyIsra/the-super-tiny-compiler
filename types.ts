@@ -21,3 +21,36 @@ interface NameToken {
 /** Lex Token */
 export type Token = ParenToken | NumberToken | StringToken | NameToken;
 
+interface NumberLiteralNode {
+  type: 'NumberLiteral',
+
+  /** String representation of a number */
+  value: string
+}
+
+interface StringLiteralNode {
+
+  type: 'StringLiteral',
+
+  value: string
+}
+
+export interface CallExpressionNode {
+
+  type: 'CallExpression',
+
+  /** Name of the calling function */
+  name: string,
+
+  params: ParserNode[]
+}
+
+/** Single Node, after being processed by the Parser */
+export type ParserNode = NumberLiteralNode | StringLiteralNode | CallExpressionNode;
+
+/** Abstract Syntax Tree, the node tree after being parsed by the Parser */
+export interface AST {
+  type: 'Program',
+
+  body: ParserNode[]
+}

@@ -1,6 +1,6 @@
 'use strict';
 
-import { Token } from "./types";
+import { Token, AST, ParserNode, CallExpressionNode } from "./types";
 
 /**
  * TTTTTTTTTTTTTTTTTTTTTTTHHHHHHHHH     HHHHHHHHHEEEEEEEEEEEEEEEEEEEEEE
@@ -378,7 +378,7 @@ import { Token } from "./types";
  *   (add 2 (subtract 4 2))   =>   [{ type: 'paren', value: '(' }, ...]
  */
 
-const swallowJsDoc = 0;
+const swallowJsDoc1 = 0;
 
 // We start by accepting an input string of code, and we're gonna set up two
 // things...
@@ -557,7 +557,10 @@ function tokenizer(input: string): Token[] {
  *   [{ type: 'paren', value: '(' }, ...]   =>   { type: 'Program', body: [...] }
  */
 
+const swallowJsDoc2 = 0;
+
 // Okay, so we define a `parser` function that accepts our array of `tokens`.
+/** Parser function, used  */
 function parser(tokens: Token[]) {
 
   // Again we keep a `current` variable that we will use as a cursor.
@@ -565,7 +568,7 @@ function parser(tokens: Token[]) {
 
   // But this time we're going to use recursion instead of a `while` loop. So we
   // define a `walk` function.
-  function walk() {
+  function walk(): ParserNode {
 
     // Inside the walk function we start by grabbing the `current` token.
     let token = tokens[current];
@@ -612,7 +615,7 @@ function parser(tokens: Token[]) {
       // We create a base node with the type `CallExpression`, and we're going
       // to set the name as the current token's value since the next token after
       // the open parenthesis is the name of the function.
-      let node = {
+      let node: CallExpressionNode = {
         type: 'CallExpression',
         name: token.value,
         params: [],
@@ -680,7 +683,7 @@ function parser(tokens: Token[]) {
 
   // Now, we're going to create our AST which will have a root which is a
   // `Program` node.
-  let ast = {
+  let ast: AST = {
     type: 'Program',
     body: [],
   };
