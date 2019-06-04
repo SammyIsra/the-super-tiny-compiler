@@ -1,5 +1,7 @@
 'use strict';
 
+import { Token } from "./types";
+
 /**
  * TTTTTTTTTTTTTTTTTTTTTTTHHHHHHHHH     HHHHHHHHHEEEEEEEEEEEEEEEEEEEEEE
  * T:::::::::::::::::::::TH:::::::H     H:::::::HE::::::::::::::::::::E
@@ -376,15 +378,18 @@
  *   (add 2 (subtract 4 2))   =>   [{ type: 'paren', value: '(' }, ...]
  */
 
+const swallowJsDoc = 0;
+
 // We start by accepting an input string of code, and we're gonna set up two
 // things...
-function tokenizer(input) {
+/** Tokenizer function, first step in the compiling process */
+function tokenizer(input: string): Token[] {
 
   // A `current` variable for tracking our position in the code like a cursor.
   let current = 0;
 
   // And a `tokens` array for pushing our tokens to.
-  let tokens = [];
+  const tokens: Token[] = [];
 
   // We start by creating a `while` loop where we are setting up our `current`
   // variable to be incremented as much as we want `inside` the loop.
@@ -511,6 +516,7 @@ function tokenizer(input) {
     //    ^^^
     //    Name token
     //
+    // The name are not received from a specific enum, they can be any string 
     let LETTERS = /[a-z]/i;
     if (LETTERS.test(char)) {
       let value = '';
@@ -552,7 +558,7 @@ function tokenizer(input) {
  */
 
 // Okay, so we define a `parser` function that accepts our array of `tokens`.
-function parser(tokens) {
+function parser(tokens: Token[]) {
 
   // Again we keep a `current` variable that we will use as a cursor.
   let current = 0;
