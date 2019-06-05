@@ -1,6 +1,6 @@
 "use strict";
 
-import { Token, SimpleAST, ParserNode, CallExpressionNode } from "./types";
+import { Token, SimpleAST, ParserNode, CallExpressionNode, Visitor } from "./types";
 
 /**
  * TTTTTTTTTTTTTTTTTTTTTTTHHHHHHHHH     HHHHHHHHHEEEEEEEEEEEEEEEEEEEEEE
@@ -744,10 +744,10 @@ export function parser(tokens: Token[]): SimpleAST {
 
 // So we define a traverser function which accepts an AST and a
 // visitor. Inside we're going to define two functions...
-export function traverser(ast: SimpleAST, visitor) {
+export function traverser(ast: SimpleAST, visitor: Visitor) {
   // A `traverseArray` function that will allow us to iterate over an array and
   // call the next function that we will define: `traverseNode`.
-  function traverseArray(array, parent) {
+  function traverseArray(array: ParserNode[], parent: ParserNode) {
     array.forEach(child => {
       traverseNode(child, parent);
     });
@@ -755,7 +755,7 @@ export function traverser(ast: SimpleAST, visitor) {
 
   // `traverseNode` will accept a `node` and its `parent` node. So that it can
   // pass both to our visitor methods.
-  function traverseNode(node, parent) {
+  function traverseNode(node: ParserNode, parent: ParserNode | null) {
     // We start by testing for the existence of a method on the visitor with a
     // matching `type`.
     let methods = visitor[node.type];
@@ -792,7 +792,7 @@ export function traverser(ast: SimpleAST, visitor) {
       // And again, if we haven't recognized the node type then we'll throw an
       // error.
       default:
-        throw new TypeError(node.type);
+        throw new TypeError(`Node seems to have unknown type: ${node}`);
     }
 
     // If there is an `exit` method for this node type we'll call it with the

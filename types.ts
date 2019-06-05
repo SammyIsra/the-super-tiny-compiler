@@ -43,15 +43,23 @@ export interface CallExpressionNode {
   params: ParserNode[];
 }
 
-/** Single Node, after being processed by the Parser */
-export type ParserNode =
-  | NumberLiteralNode
-  | StringLiteralNode
-  | CallExpressionNode;
-
 /** Abstract Syntax Tree, the node tree after being parsed by the Parser */
 export interface SimpleAST {
   type: "Program";
 
   body: ParserNode[];
+}
+
+/** Single Node, after being processed by the Parser */
+export type ParserNode =
+  | NumberLiteralNode
+  | StringLiteralNode
+  | CallExpressionNode
+  | SimpleAST;
+
+export type Visitor = {
+  [key in ParserNode["type"]]: {
+    enter?: (node: ParserNode, parent: ParserNode) => void;
+    exit?: (node: ParserNode, parent: ParserNode) => void;
+  };
 }
