@@ -1,56 +1,57 @@
 interface ParenToken {
-  type: 'paren',
-  value: '(' | ')',
+  type: "paren";
+  value: "(" | ")";
 }
 
 interface NumberToken {
-  type: 'number',
-  value: string,
+  type: "number";
+  value: string;
 }
 
 interface StringToken {
-  type: 'string',
-  value: string,
+  type: "string";
+  value: string;
 }
 
 interface NameToken {
-  type: 'name',
-  value: string
+  type: "name";
+  value: string;
 }
 
 /** Lex Token */
 export type Token = ParenToken | NumberToken | StringToken | NameToken;
 
 interface NumberLiteralNode {
-  type: 'NumberLiteral',
+  type: "NumberLiteral";
 
   /** String representation of a number */
-  value: string
+  value: string;
 }
 
 interface StringLiteralNode {
+  type: "StringLiteral";
 
-  type: 'StringLiteral',
-
-  value: string
+  value: string;
 }
 
 export interface CallExpressionNode {
-
-  type: 'CallExpression',
+  type: "CallExpression";
 
   /** Name of the calling function */
-  name: string,
+  name: string;
 
-  params: ParserNode[]
+  params: ParserNode[];
 }
 
 /** Single Node, after being processed by the Parser */
-export type ParserNode = NumberLiteralNode | StringLiteralNode | CallExpressionNode;
+export type ParserNode =
+  | NumberLiteralNode
+  | StringLiteralNode
+  | CallExpressionNode;
 
 /** Abstract Syntax Tree, the node tree after being parsed by the Parser */
-export interface AST {
-  type: 'Program',
+export interface SimpleAST {
+  type: "Program";
 
-  body: ParserNode[]
+  body: ParserNode[];
 }
