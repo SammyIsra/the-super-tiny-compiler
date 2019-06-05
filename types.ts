@@ -57,9 +57,10 @@ export type ParserNode =
   | CallExpressionNode
   | SimpleAST;
 
-export type Visitor = {
-  [key in ParserNode["type"]]: {
+export type Visitor = Record<
+  ParserNode["type"],
+  {
     enter?: (node: ParserNode, parent: ParserNode) => void;
     exit?: (node: ParserNode, parent: ParserNode) => void;
-  };
-}
+  }
+>;
