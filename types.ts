@@ -63,3 +63,35 @@ export type Visitor = {
     exit?: (node: ParserNode, parent: ParserNode) => void;
   };
 }
+
+// TransformedAST Nodes. Name convention will be Transformed<type>Node iif they need to be updated.
+
+interface ExpressionStatementNode {
+  type: 'ExpressionStatement',
+  expression: TransformedCallExpressionNode
+}
+
+interface TransformedCallExpressionNode {
+  type: 'CallExpression',
+  callee: IdentifierNode,
+  arguments: Array<any>
+}
+
+interface IdentifierNode {
+  type: 'Identifier',
+  name: string
+}
+
+export interface TransformedAST {
+  type: 'Program',
+  body: Array<ExpressionStatementNode>
+}
+
+/** Single node from the Transformed AST, the AST that is outputted from the transformer */
+export type TransformedASTNode = 
+  | NumberLiteralNode 
+  | StringLiteralNode 
+  | ExpressionStatementNode 
+  | TransformedCallExpressionNode 
+  | TransformedAST 
+  | IdentifierNode;
