@@ -758,12 +758,12 @@ export function traverser(ast: SimpleAST, visitor: Visitor) {
   function traverseNode(node: ParserNode, parent: ParserNode | null) {
     // We start by testing for the existence of a method on the visitor with a
     // matching `type`.
-    let methods = visitor[node.type];
+    let visitorMethods = visitor[node.type];
 
     // If there is an `enter` method for this node type we'll call it with the
     // `node` and its `parent`.
-    if (methods && methods.enter) {
-      methods.enter(node, parent);
+    if (visitorMethods && visitorMethods.enter) {
+      visitorMethods.enter(node, parent);
     }
 
     // Next we are going to split things up by the current node type.
@@ -797,8 +797,8 @@ export function traverser(ast: SimpleAST, visitor: Visitor) {
 
     // If there is an `exit` method for this node type we'll call it with the
     // `node` and its `parent`.
-    if (methods && methods.exit) {
-      methods.exit(node, parent);
+    if (visitorMethods && visitorMethods.exit) {
+      visitorMethods.exit(node, parent);
     }
   }
 
