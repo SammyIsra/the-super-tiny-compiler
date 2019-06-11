@@ -1,6 +1,6 @@
 "use strict";
 
-import { Token, SimpleAST, ParserNode, CallExpressionNode, Visitor } from "./types";
+import { Token, SimpleAST, ParserNode, CallExpressionNode, Visitor, TransformedASTNode } from "./types";
 
 /**
  * TTTTTTTTTTTTTTTTTTTTTTTHHHHHHHHH     HHHHHHHHHEEEEEEEEEEEEEEEEEEEEEE
@@ -758,12 +758,12 @@ export function traverser(ast: SimpleAST, visitor: Visitor) {
   function traverseNode(node: ParserNode, parent: ParserNode | null) {
     // We start by testing for the existence of a method on the visitor with a
     // matching `type`.
-    let methods = visitor[node.type];
+    let visitorMethods = visitor[node.type];
 
     // If there is an `enter` method for this node type we'll call it with the
     // `node` and its `parent`.
-    if (methods && methods.enter) {
-      methods.enter(node, parent);
+    if (visitorMethods && visitorMethods.enter) {
+      visitorMethods.enter(node, parent);
     }
 
     // Next we are going to split things up by the current node type.
@@ -797,8 +797,8 @@ export function traverser(ast: SimpleAST, visitor: Visitor) {
 
     // If there is an `exit` method for this node type we'll call it with the
     // `node` and its `parent`.
-    if (methods && methods.exit) {
-      methods.exit(node, parent);
+    if (visitorMethods && visitorMethods.exit) {
+      visitorMethods.exit(node, parent);
     }
   }
 
@@ -856,7 +856,7 @@ export function traverser(ast: SimpleAST, visitor: Visitor) {
  */
 
 // So we have our transformer function which will accept the lisp ast.
-export function transformer(ast) {
+export function transformer(ast: SimpleAST) {
   // We'll create a `newAst` which like our previous AST will have a program
   // node.
   let newAst = {
@@ -932,7 +932,11 @@ export function transformer(ast) {
         // Last, we push our (possibly wrapped) `CallExpression` to the `parent`'s
         // `context`.
         parent._context.push(expression);
-      }
+      },
+    },
+
+    // Finally, 'Program'. It doesn't have anything, but for the sake of TypeScript types, it needs to exist.
+    Program: {
     }
   });
 
@@ -955,7 +959,7 @@ export function transformer(ast) {
  * the tree into one giant string.
  */
 
-export function codeGenerator(node) {
+export function codeGenerator(node: TransformedASTNode) {
   // We'll break things down by the `type` of the `node`.
   switch (node.type) {
     // If we have a `Program` node. We will map through each node in the `body`
@@ -996,7 +1000,7 @@ export function codeGenerator(node) {
 
     // And if we haven't recognized the node, we'll throw an error.
     default:
-      throw new TypeError(node.type);
+      throw new TypeError(`Node seems to have unknown type: ${node}`);
   }
 }
 
@@ -1013,7 +1017,7 @@ export function codeGenerator(node) {
  *
  *   1. input  => tokenizer   => tokens
  *   2. tokens => parser      => ast
- *   3. ast    => transformer => newAst
+ *   3. ast    => transformer => newAst (also called 'Transformed AST')
  *   4. newAst => generator   => output
  */
 
@@ -1035,7 +1039,7 @@ export function compiler(input) {
  */
 
 // Everything is exported via ES6 modules
-// Now I'm just exporting everything...
+// Now I'm just exporting everything in their own lines...
 // module.export = {
 //   tokenizer,
 //   parser,
