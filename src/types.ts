@@ -67,21 +67,21 @@ export type Visitor = Record<
 
 // Transformed AST Types
 
-type ExpressionNode = {
-  type: "ExpressionStatement",
-  expression: TransformedASTNode
+interface ExpressionNode {
+  type: "ExpressionStatement";
+  expression: TransformedASTNode;
 }
 
-type TransformedCallExpressionNode = {
-  type: CallExpressionNode["type"],
+interface TransformedCallExpressionNode {
+  type: CallExpressionNode["type"];
   callee: {
-    type: "Identifier",
-    name: string
-  },
-  arguments: TransformedASTNode[]
+    type: "Identifier";
+    name: string;
+  };
+  arguments: TransformedASTNode[];
 }
 
-export type TransformedASTNode = 
+export type TransformedASTNode =
   | NumberLiteralNode
   | StringLiteralNode
   | ExpressionNode
