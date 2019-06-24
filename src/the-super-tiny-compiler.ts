@@ -863,7 +863,7 @@ export function traverser(ast: SimpleAST, visitor: ASTVisitor): void {
 // So we have our transformer function which will accept the lisp ast.
 export function transformer(ast: SimpleAST): TransformedAST {
   // We'll create a `newAst` which like our previous AST will have a program
-  // node.
+  // node, and its contents inside the body property
   const newAst: TransformedAST = {
     type: "Program",
     body: []
