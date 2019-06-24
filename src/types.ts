@@ -57,17 +57,29 @@ export type ParserNode =
   | CallExpressionNode
   | SimpleAST;
 
-export type Visitor = Record<
-  ParserNode["type"],
-  {
-    enter?: (node: ParserNode, parent: ParserNode) => void;
-    exit?: (node: ParserNode, parent: ParserNode) => void;
-  }
->;
+/// Old Visitor that I had to comment out since it did not offer flexibility on the type on the 'node' argument
+// export type OldVisitor = Record<
+//   ParserNode["type"],
+//   {
+//     enter?: (node: ParserNode, parent: ParserNode | null) => void;
+//     exit?: (node: ParserNode, parent: ParserNode | null) => void;
+//   }
+// >;
+
+/**
+ * Object that follows the Visitor pattern for our AST.
+ * Each option from ParserNode is mapped to an {enter, send} object
+ */
+export type ASTVisitor = {
+  [T in ParserNode["type"]]: {
+    enter: (node: Extract<ParserNode, { type: T }>, parent: ParserNode) => void;
+    exit?: (node: Extract<ParserNode, { type: T }>, parent: ParserNode) => void;
+  };
+};
 
 // Transformed AST Types
 
-interface ExpressionNode {
+interface ExpressionStatementNode {
   type: "ExpressionStatement";
   expression: TransformedASTNode;
 }
@@ -84,5 +96,11 @@ interface TransformedCallExpressionNode {
 export type TransformedASTNode =
   | NumberLiteralNode
   | StringLiteralNode
-  | ExpressionNode
-  | TransformedCallExpressionNode;
+  | ExpressionStatementNode
+  | TransformedCallExpressionNode
+  | TransformedAST;
+
+export interface TransformedAST {
+  type: "Program";
+  body: ExpressionStatementNode[];
+}

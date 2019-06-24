@@ -1,8 +1,16 @@
 "use strict";
 
-import { Token, SimpleAST, ParserNode, CallExpressionNode, Visitor, TransformedASTNode } from "./types";
+import {
+  Token,
+  SimpleAST,
+  ParserNode,
+  CallExpressionNode,
+  ASTVisitor,
+  TransformedASTNode,
+  TransformedAST
+} from "./types";
 
-/**
+/*
  * TTTTTTTTTTTTTTTTTTTTTTTHHHHHHHHH     HHHHHHHHHEEEEEEEEEEEEEEEEEEEEEE
  * T:::::::::::::::::::::TH:::::::H     H:::::::HE::::::::::::::::::::E
  * T:::::::::::::::::::::TH:::::::H     H:::::::HE::::::::::::::::::::E
@@ -77,7 +85,7 @@ import { Token, SimpleAST, ParserNode, CallExpressionNode, Visitor, TransformedA
  * =======================================================================================================================================================================
  */
 
-/**
+/*
  * Today we're going to write a compiler together. But not just any compiler... A
  * super duper teeny tiny compiler! A compiler that is so small that if you
  * remove all the comments this file would only be ~200 lines of actual code.
@@ -102,7 +110,7 @@ import { Token, SimpleAST, ParserNode, CallExpressionNode, Visitor, TransformedA
  * demonstrate many of the major pieces of a modern compiler.
  */
 
-/**
+/*
  * Most compilers break down into three primary stages: Parsing, Transformation,
  * and Code Generation
  *
@@ -116,7 +124,7 @@ import { Token, SimpleAST, ParserNode, CallExpressionNode, Visitor, TransformedA
  *    turns it into new code.
  */
 
-/**
+/*
  * Parsing
  * -------
  *
@@ -182,7 +190,7 @@ import { Token, SimpleAST, ParserNode, CallExpressionNode, Visitor, TransformedA
  *   }
  */
 
-/**
+/*
  * Transformation
  * --------------
  *
@@ -325,7 +333,7 @@ import { Token, SimpleAST, ParserNode, CallExpressionNode, Visitor, TransformedA
  *   };
  */
 
-/**
+/*
  * Code Generation
  * ---------------
  *
@@ -343,7 +351,7 @@ import { Token, SimpleAST, ParserNode, CallExpressionNode, Visitor, TransformedA
  * nodes until everything is printed into one long string of code.
  */
 
-/**
+/*
  * And that's it! That's all the different pieces of a compiler.
  *
  * Now that isn’t to say every compiler looks exactly like I described here.
@@ -361,14 +369,14 @@ import { Token, SimpleAST, ParserNode, CallExpressionNode, Visitor, TransformedA
  * So let's begin...
  */
 
-/**
+/*
  * ============================================================================
  *                                   (/^▽^)/
  *                                THE TOKENIZER!
  * ============================================================================
  */
 
-/**
+/*
  * We're gonna start off with our first phase of parsing, lexical analysis, with
  * the tokenizer.
  *
@@ -377,8 +385,6 @@ import { Token, SimpleAST, ParserNode, CallExpressionNode, Visitor, TransformedA
  *
  *   (add 2 (subtract 4 2))   =>   [{ type: 'paren', value: '(' }, ...]
  */
-
-const swallowJsDoc1 = 0;
 
 // We start by accepting an input string of code, and we're gonna set up two
 // things...
@@ -438,7 +444,7 @@ export function tokenizer(input: string): Token[] {
     //
     // So here we're just going to test for existence and if it does exist we're
     // going to just `continue` on.
-    let WHITESPACE = /\s/;
+    const WHITESPACE = /\s/;
     if (WHITESPACE.test(char)) {
       current++;
       continue;
@@ -453,7 +459,7 @@ export function tokenizer(input: string): Token[] {
     //        Only two separate tokens
     //
     // So we start this off when we encounter the first number in a sequence.
-    let NUMBERS = /[0-9]/;
+    const NUMBERS = /[0-9]/;
     if (NUMBERS.test(char)) {
       // We're going to create a `value` string that we are going to push
       // characters to.
@@ -513,7 +519,7 @@ export function tokenizer(input: string): Token[] {
     //    Name token
     //
     // The name are not received from a specific enum, they can be any string
-    let LETTERS = /[a-z]/i;
+    const LETTERS = /[a-z]/i;
     if (LETTERS.test(char)) {
       let value = "";
 
@@ -539,21 +545,18 @@ export function tokenizer(input: string): Token[] {
   return tokens;
 }
 
-/**
+/*
  * ============================================================================
- *                                 ヽ/❀o ل͜ o\ﾉ
  *                                THE PARSER!!!
  * ============================================================================
  */
 
-/**
+/*
  * For our parser we're going to take our array of tokens and turn it into an
  * AST.
  *
  *   [{ type: 'paren', value: '(' }, ...]   =>   { type: 'Program', body: [...] }
  */
-
-const swallowJsDoc2 = 0;
 
 // Okay, so we define a `parser` function that accepts our array of `tokens`.
 /** Parser function, used  */
@@ -605,7 +608,7 @@ export function parser(tokens: Token[]): SimpleAST {
           // We create a base node with the type `CallExpression`, and we're going
           // to set the name as the current token's value since the next token after
           // the open parenthesis is the name of the function.
-          let node: CallExpressionNode = {
+          const node: CallExpressionNode = {
             type: "CallExpression",
             name: token.value,
             params: []
@@ -678,7 +681,7 @@ export function parser(tokens: Token[]): SimpleAST {
 
   // Now, we're going to create our AST which will have a root which is a
   // `Program` node.
-  let ast: SimpleAST = {
+  const ast: SimpleAST = {
     type: "Program",
     body: []
   };
@@ -700,14 +703,13 @@ export function parser(tokens: Token[]): SimpleAST {
   return ast;
 }
 
-/**
+/*
  * ============================================================================
- *                                 ⌒(❀>◞౪◟<❀)⌒
  *                               THE TRAVERSER!!!
  * ============================================================================
  */
 
-/**
+/*
  * So now we have our AST, and we want to be able to visit different nodes with
  * a visitor. We need to be able to call the methods on the visitor whenever we
  * encounter a node with a matching type.
@@ -742,13 +744,16 @@ export function parser(tokens: Token[]): SimpleAST {
  *   });
  */
 
+/** Traverser function, as per https://the-super-tiny-compiler.glitch.me/traverser */
 // So we define a traverser function which accepts an AST and a
 // visitor. Inside we're going to define two functions...
-export function traverser(ast: SimpleAST, visitor: Visitor) {
+export function traverser(ast: SimpleAST, visitor: ASTVisitor): void {
   // A `traverseArray` function that will allow us to iterate over an array and
   // call the next function that we will define: `traverseNode`.
-  function traverseArray(array: ParserNode[], parent: ParserNode) {
+  function traverseArray(array: ParserNode[], parent: ParserNode): void {
     array.forEach(child => {
+      // In this case it is fiiiiine
+      // eslint-disable-next-line @typescript-eslint/no-use-before-define
       traverseNode(child, parent);
     });
   }
@@ -758,7 +763,7 @@ export function traverser(ast: SimpleAST, visitor: Visitor) {
   function traverseNode(node: ParserNode, parent: ParserNode | null) {
     // We start by testing for the existence of a method on the visitor with a
     // matching `type`.
-    let visitorMethods = visitor[node.type];
+    const visitorMethods = visitor[node.type];
 
     // If there is an `enter` method for this node type we'll call it with the
     // `node` and its `parent`.
@@ -807,14 +812,13 @@ export function traverser(ast: SimpleAST, visitor: Visitor) {
   traverseNode(ast, null);
 }
 
-/**
+/*
  * ============================================================================
- *                                   ⁽(◍˃̵͈̑ᴗ˂̵͈̑)⁽
  *                              THE TRANSFORMER!!!
  * ============================================================================
  */
 
-/**
+/*
  * Next up, the transformer. Our transformer is going to take the AST that we
  * have built and pass it to our traverser function with a visitor and will
  * create a new ast.
@@ -855,11 +859,12 @@ export function traverser(ast: SimpleAST, visitor: Visitor) {
  * ----------------------------------------------------------------------------
  */
 
+/** Transformer function, as per https://the-super-tiny-compiler.glitch.me/transformer */
 // So we have our transformer function which will accept the lisp ast.
-export function transformer(ast: SimpleAST) {
+export function transformer(ast: SimpleAST): TransformedAST {
   // We'll create a `newAst` which like our previous AST will have a program
   // node.
-  let newAst = {
+  const newAst: TransformedAST = {
     type: "Program",
     body: []
   };
@@ -881,20 +886,24 @@ export function transformer(ast: SimpleAST) {
       enter(node, parent) {
         // We'll create a new node also named `NumberLiteral` that we will push to
         // the parent context.
-        parent._context.push({
-          type: "NumberLiteral",
-          value: node.value
-        });
+        if (parent !== null) {
+          parent._context.push({
+            type: "NumberLiteral",
+            value: node.value
+          });
+        }
       }
     },
 
     // Next we have `StringLiteral`
     StringLiteral: {
       enter(node, parent) {
-        parent._context.push({
-          type: "StringLiteral",
-          value: node.value
-        });
+        if (parent !== null) {
+          parent._context.push({
+            type: "StringLiteral",
+            value: node.value
+          });
+        }
       }
     },
 
@@ -932,12 +941,11 @@ export function transformer(ast: SimpleAST) {
         // Last, we push our (possibly wrapped) `CallExpression` to the `parent`'s
         // `context`.
         parent._context.push(expression);
-      },
+      }
     },
 
     // Finally, 'Program'. It doesn't have anything, but for the sake of TypeScript types, it needs to exist.
-    Program: {
-    }
+    Program: { enter: () => undefined }
   });
 
   // At the end of our transformer function we'll return the new ast that we
@@ -945,14 +953,13 @@ export function transformer(ast: SimpleAST) {
   return newAst;
 }
 
-/**
+/*
  * ============================================================================
- *                               ヾ（〃＾∇＾）ﾉ♪
  *                            THE CODE GENERATOR!!!!
  * ============================================================================
  */
 
-/**
+/*
  * Now let's move onto our last phase: The Code Generator.
  *
  * Our code generator is going to recursively call itself to print each node in
@@ -1004,14 +1011,13 @@ export function codeGenerator(node: TransformedASTNode) {
   }
 }
 
-/**
+/*
  * ============================================================================
- *                                  (۶* ‘ヮ’)۶”
  *                         !!!!!!!!THE COMPILER!!!!!!!!
  * ============================================================================
  */
 
-/**
+/*
  * FINALLY! We'll create our `compiler` function. Here we will link together
  * every part of the pipeline.
  *
@@ -1021,19 +1027,18 @@ export function codeGenerator(node: TransformedASTNode) {
  *   4. newAst => generator   => output
  */
 
-export function compiler(input) {
-  let tokens = tokenizer(input);
-  let ast = parser(tokens);
-  let newAst = transformer(ast);
-  let output = codeGenerator(newAst);
+export function compiler(input: string) {
+  const tokens = tokenizer(input);
+  const ast = parser(tokens);
+  const newAst = transformer(ast);
+  const output = codeGenerator(newAst);
 
   // and simply return the output!
   return output;
 }
 
-/**
+/*
  * ============================================================================
- *                                   (๑˃̵ᴗ˂̵)و
  * !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!YOU MADE IT!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
  * ============================================================================
  */

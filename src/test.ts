@@ -46,7 +46,8 @@ const ast: SimpleAST = {
             {
               type: "NumberLiteral",
               value: "2"
-            }          ]
+            }
+          ]
         }
       ]
     }
