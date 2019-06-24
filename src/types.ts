@@ -64,3 +64,25 @@ export type Visitor = Record<
     exit?: (node: ParserNode, parent: ParserNode) => void;
   }
 >;
+
+// Transformed AST Types
+
+type ExpressionNode = {
+  type: "ExpressionStatement",
+  expression: TransformedASTNode
+}
+
+type TransformedCallExpressionNode = {
+  type: CallExpressionNode["type"],
+  callee: {
+    type: "Identifier",
+    name: string
+  },
+  arguments: TransformedASTNode[]
+}
+
+export type TransformedASTNode = 
+  | NumberLiteralNode
+  | StringLiteralNode
+  | ExpressionNode
+  | TransformedCallExpressionNode;
