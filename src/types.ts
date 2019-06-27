@@ -26,12 +26,18 @@ interface NumberLiteralNode {
 
   /** String representation of a number */
   value: string;
+
+  /** Link to parent context */
+  _context?: TransformedASTNode[];
 }
 
 interface StringLiteralNode {
   type: "StringLiteral";
 
   value: string;
+
+  /** Link to parent context */
+  _context?: TransformedASTNode[];
 }
 
 export interface CallExpressionNode {
@@ -41,6 +47,9 @@ export interface CallExpressionNode {
   name: string;
 
   params: ParserNode[];
+
+  /** Link to parent context */
+  _context?: TransformedASTNode[];
 }
 
 /** Abstract Syntax Tree, the node tree after being parsed by the Parser */
@@ -48,6 +57,9 @@ export interface SimpleAST {
   type: "Program";
 
   body: ParserNode[];
+
+  /** Link to parent context */
+  _context?: TransformedASTNode[];
 }
 
 /** Single Node, after being processed by the Parser */
@@ -66,6 +78,7 @@ export type ParserNode =
 //   }
 // >;
 
+// TODO: The Parent argument here has to be an intermediary ParserNode (A ParserNode with _context)
 /**
  * Object that follows the Visitor pattern for our AST.
  * Each option from ParserNode is mapped to an {enter, send} object
@@ -76,7 +89,7 @@ export type ASTVisitor = {
       node: Extract<ParserNode, { type: T }>,
       parent: ParserNode | null
     ) => void;
-    exit: (
+    exit?: (
       node: Extract<ParserNode, { type: T }>,
       parent: ParserNode | null
     ) => void;
@@ -90,13 +103,15 @@ interface ExpressionStatementNode {
   expression: TransformedASTNode;
 }
 
-interface TransformedCallExpressionNode {
+export interface TransformedCallExpressionNode {
   type: CallExpressionNode["type"];
-  callee: {
-    type: "Identifier";
-    name: string;
-  };
+  callee: IdentifierNode;
   arguments: TransformedASTNode[];
+}
+
+interface IdentifierNode {
+  type: "Identifier";
+  name: string;
 }
 
 export type TransformedASTNode =
@@ -104,6 +119,7 @@ export type TransformedASTNode =
   | StringLiteralNode
   | ExpressionStatementNode
   | TransformedCallExpressionNode
+  | IdentifierNode
   | TransformedAST;
 
 export interface TransformedAST {

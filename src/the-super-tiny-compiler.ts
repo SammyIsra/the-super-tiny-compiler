@@ -7,7 +7,10 @@ import {
   CallExpressionNode,
   ASTVisitor,
   TransformedASTNode,
-  TransformedAST
+  TransformedAST,
+  SimpleASTWithContext,
+  ExpressionStatementNode,
+  TransformedCallExpressionNode
 } from "./types";
 
 /*
@@ -859,7 +862,9 @@ export function traverser(ast: SimpleAST, visitor: ASTVisitor): void {
 
 /** Transformer function, as per https://the-super-tiny-compiler.glitch.me/transformer */
 // So we have our transformer function which will accept the lisp ast.
-export function transformer(ast: SimpleAST): TransformedAST {
+export function transformer(
+  ast: SimpleAST | SimpleASTWithContext
+): TransformedAST {
   // We'll create a `newAst` which like our previous AST will have a program
   // node, and its contents inside the body property
   const newAst: TransformedAST = {
@@ -912,37 +917,47 @@ export function transformer(ast: SimpleAST): TransformedAST {
     // Next up, `CallExpression`.
     CallExpression: {
       enter(node, parent) {
-        // We start creating a new node `CallExpression` with a nested
-        // `Identifier`.
-        let expression = {
-          type: "CallExpression",
-          callee: {
-            type: "Identifier",
-            name: node.name
-          },
-          arguments: []
-        };
-
-        // Next we're going to define a new context on the original
-        // `CallExpression` node that will reference the `expression`'s arguments
-        // so that we can push arguments.
-        node._context = expression.arguments;
-
-        // Then we're going to check if the parent node is a `CallExpression`.
-        // If it is not...
-        if (parent.type !== "CallExpression") {
-          // We're going to wrap our `CallExpression` node with an
-          // `ExpressionStatement`. We do this because the top level
-          // `CallExpression` in JavaScript are actually statements.
-          expression = {
-            type: "ExpressionStatement",
-            expression: expression
-          };
+        if (!parent) {
+          throw new TypeError(
+            "Parent node of node of type CallExpression should be defined"
+          );
+        }
+        if (parent._context === undefined) {
+          throw new TypeError(
+            "Context of parent node of type CallExpression should have been defined"
+          );
         }
 
-        // Last, we push our (possibly wrapped) `CallExpression` to the `parent`'s
-        // `context`.
-        parent._context.push(expression);
+        if (parent.type === "CallExpression") {
+          const expressionNode: ExpressionStatementNode = {
+            type: "ExpressionStatement",
+            expression: {
+              type: "CallExpression",
+              callee: {
+                type: "Identifier",
+                name: node.name
+              },
+              arguments: []
+            }
+          };
+
+          node._context = expressionNode.expression.arguments;
+
+          parent._context.push(expressionNode);
+        } else {
+          const callExpressionNode: TransformedCallExpressionNode = {
+            type: "CallExpression",
+            callee: {
+              type: "Identifier",
+              name: node.name
+            },
+            arguments: []
+          };
+
+          node._context = callExpressionNode.arguments;
+
+          parent._context.push(callExpressionNode);
+        }
       },
 
       exit() {}
@@ -970,7 +985,7 @@ export function transformer(ast: SimpleAST): TransformedAST {
  * the tree into one giant string.
  */
 
-export function codeGenerator(node: TransformedASTNode) {
+export function codeGenerator(node: TransformedASTNode): string {
   // We'll break things down by the `type` of the `node`.
   switch (node.type) {
     // If we have a `Program` node. We will map through each node in the `body`
