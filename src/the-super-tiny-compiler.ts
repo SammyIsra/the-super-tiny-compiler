@@ -761,17 +761,11 @@ export function traverser(ast: SimpleAST, visitor: ASTVisitor): void {
   // `traverseNode` will accept a `node` and its `parent` node. So that it can
   // pass both to our visitor methods.
   function traverseNode(node: ParserNode, parent: ParserNode | null) {
-    // We start by testing for the existence of a method on the visitor with a
-    // matching `type`.
-    const visitorMethods = visitor[node.type];
+    // In every one of the below cases:
+    //  - We call the `enter` method (guaranteed to exist and do something)
+    //  - Handle any traversal logic of the node
+    //  - Call the `exit` method (guaranteed to exist, not to do something)
 
-    // If there is an `enter` method for this node type we'll call it with the
-    // `node` and its `parent`.
-    if (visitorMethods && visitorMethods.enter) {
-      visitorMethods.enter(node, parent);
-    }
-
-    // Next we are going to split things up by the current node type.
     switch (node.type) {
       // We'll start with our top level `Program`. Since Program nodes have a
       // property named body that has an array of nodes, we will call
@@ -780,30 +774,34 @@ export function traverser(ast: SimpleAST, visitor: ASTVisitor): void {
       // (Remember that `traverseArray` will in turn call `traverseNode` so  we
       // are causing the tree to be traversed recursively)
       case "Program":
+        visitor[node.type].enter(node, parent);
         traverseArray(node.body, node);
+        visitor[node.type].exit(node, parent);
         break;
 
       // Next we do the same with `CallExpression` and traverse their `params`.
       case "CallExpression":
+        visitor[node.type].enter(node, parent);
         traverseArray(node.params, node);
+        visitor[node.type].exit(node, parent);
         break;
 
       // In the cases of `NumberLiteral` and `StringLiteral` we don't have any
-      // child nodes to visit, so we'll just break.
+      // child nodes to visit, so we'll just call the enter and exit methods and break.
       case "NumberLiteral":
+        visitor[node.type].enter(node, parent);
+        visitor[node.type].exit(node, parent);
+        break;
+
       case "StringLiteral":
+        visitor[node.type].enter(node, parent);
+        visitor[node.type].exit(node, parent);
         break;
 
       // And again, if we haven't recognized the node type then we'll throw an
       // error.
       default:
         throw new TypeError(`Node seems to have unknown type: ${node}`);
-    }
-
-    // If there is an `exit` method for this node type we'll call it with the
-    // `node` and its `parent`.
-    if (visitorMethods && visitorMethods.exit) {
-      visitorMethods.exit(node, parent);
     }
   }
 
@@ -892,7 +890,9 @@ export function transformer(ast: SimpleAST): TransformedAST {
             value: node.value
           });
         }
-      }
+      },
+
+      exit() {}
     },
 
     // Next we have `StringLiteral`
@@ -904,7 +904,9 @@ export function transformer(ast: SimpleAST): TransformedAST {
             value: node.value
           });
         }
-      }
+      },
+
+      exit() {}
     },
 
     // Next up, `CallExpression`.
@@ -941,11 +943,13 @@ export function transformer(ast: SimpleAST): TransformedAST {
         // Last, we push our (possibly wrapped) `CallExpression` to the `parent`'s
         // `context`.
         parent._context.push(expression);
-      }
+      },
+
+      exit() {}
     },
 
     // Finally, 'Program'. It doesn't have anything, but for the sake of TypeScript types, it needs to exist.
-    Program: { enter: () => undefined }
+    Program: { enter: () => undefined, exit() {} }
   });
 
   // At the end of our transformer function we'll return the new ast that we

@@ -72,8 +72,14 @@ export type ParserNode =
  */
 export type ASTVisitor = {
   [T in ParserNode["type"]]: {
-    enter: (node: Extract<ParserNode, { type: T }>, parent: ParserNode) => void;
-    exit?: (node: Extract<ParserNode, { type: T }>, parent: ParserNode) => void;
+    enter: (
+      node: Extract<ParserNode, { type: T }>,
+      parent: ParserNode | null
+    ) => void;
+    exit: (
+      node: Extract<ParserNode, { type: T }>,
+      parent: ParserNode | null
+    ) => void;
   };
 };
 
