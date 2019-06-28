@@ -8,9 +8,9 @@ import {
   ASTVisitor,
   TransformedASTNode,
   TransformedAST,
-  SimpleASTWithContext,
   ExpressionStatementNode,
-  TransformedCallExpressionNode
+  TransformedCallExpressionNode,
+  WithContext
 } from "./types";
 
 /*
@@ -753,7 +753,10 @@ export function parser(tokens: Token[]): SimpleAST {
 export function traverser(ast: SimpleAST, visitor: ASTVisitor): void {
   // A `traverseArray` function that will allow us to iterate over an array and
   // call the next function that we will define: `traverseNode`.
-  function traverseArray(array: ParserNode[], parent: ParserNode): void {
+  function traverseArray(
+    array: ParserNode[],
+    parent: ParserNode & WithContext
+  ): void {
     array.forEach(child => {
       // In this case it is fiiiiine
       // eslint-disable-next-line @typescript-eslint/no-use-before-define
@@ -763,7 +766,10 @@ export function traverser(ast: SimpleAST, visitor: ASTVisitor): void {
 
   // `traverseNode` will accept a `node` and its `parent` node. So that it can
   // pass both to our visitor methods.
-  function traverseNode(node: ParserNode, parent: ParserNode | null) {
+  function traverseNode(
+    node: ParserNode,
+    parent: (ParserNode & WithContext) | null
+  ) {
     // In every one of the below cases:
     //  - We call the `enter` method (guaranteed to exist and do something)
     //  - Handle any traversal logic of the node
@@ -820,50 +826,71 @@ export function traverser(ast: SimpleAST, visitor: ASTVisitor): void {
  */
 
 /*
- * Next up, the transformer. Our transformer is going to take the AST that we
- * have built and pass it to our traverser function with a visitor and will
- * create a new ast.
- *
- * ----------------------------------------------------------------------------
- *   Original AST                     |   Transformed AST
- * ----------------------------------------------------------------------------
- *   {                                |   {
- *     type: 'Program',               |     type: 'Program',
- *     body: [{                       |     body: [{
- *       type: 'CallExpression',      |       type: 'ExpressionStatement',
- *       name: 'add',                 |       expression: {
- *       params: [{                   |         type: 'CallExpression',
- *         type: 'NumberLiteral',     |         callee: {
- *         value: '2'                 |           type: 'Identifier',
- *       }, {                         |           name: 'add'
- *         type: 'CallExpression',    |         },
- *         name: 'subtract',          |         arguments: [{
- *         params: [{                 |           type: 'NumberLiteral',
- *           type: 'NumberLiteral',   |           value: '2'
- *           value: '4'               |         }, {
- *         }, {                       |           type: 'CallExpression',
- *           type: 'NumberLiteral',   |           callee: {
- *           value: '2'               |             type: 'Identifier',
- *         }]                         |             name: 'subtract'
- *       }]                           |           },
- *     }]                             |           arguments: [{
- *   }                                |             type: 'NumberLiteral',
- *                                    |             value: '4'
- * ---------------------------------- |           }, {
- *                                    |             type: 'NumberLiteral',
- *                                    |             value: '2'
- *                                    |           }]
- *  (sorry the other one is longer.)  |         }
- *                                    |       }
- *                                    |     }]
- *                                    |   }
- * ----------------------------------------------------------------------------
+  Next up, the transformer. Our transformer is going to take the AST that we
+  have built and pass it to our traverser function with a visitor and will
+  create a new ast.
+ 
+  ----------------------------------------------------------------------------
+    Original AST                     |   Transformed AST
+  ----------------------------------------------------------------------------
+    {                                |   {
+      type: 'Program',               |     type: 'Program',
+      body: [{                       |     body: [{
+        type: 'CallExpression',      |       type: 'ExpressionStatement',
+        name: 'add',                 |       expression: {
+        params: [{                   |         type: 'CallExpression',
+          type: 'NumberLiteral',     |         callee: {
+          value: '2'                 |           type: 'Identifier',
+        }, {                         |           name: 'add'
+          type: 'CallExpression',    |         },
+          name: 'subtract',          |         arguments: [{
+          params: [{                 |           type: 'NumberLiteral',
+            type: 'NumberLiteral',   |           value: '2'
+            value: '4'               |         }, {
+          }, {                       |           type: 'CallExpression',
+            type: 'NumberLiteral',   |           callee: {
+            value: '2'               |             type: 'Identifier',
+          }]                         |             name: 'subtract'
+        }]                           |           },
+      }]                             |           arguments: [{
+    }                                |             type: 'NumberLiteral',
+                                     |             value: '4'
+  ---------------------------------- |           }, {
+                                     |             type: 'NumberLiteral',
+                                     |             value: '2'
+                                     |           }]
+   (sorry the other one is longer.)  |         }
+                                     |       }
+                                     |     }]
+                                     |   }
+  ----------------------------------------------------------------------------
  */
+
+/*
+  Differences between the old and the new AST:
+    1. Program:
+      a. Every line in the body property is an ExpressionStatement node instead of a CallExpression node
+        - Expression Nodes represent a line
+    2. CallExpression
+      a. New 'callee' property contains an Identifier node, which just identifies/gives a name to a variable
+        - This replaces the 'name' property
+      b. 'arguments' property repalces the 'params' array, serves the same purpose
+        - This seems unnecessary, no? 
+        - Isnt 'arguments' the correct nomeclature, anyway?
+    3. NumberLiteral
+      a. Unchanged
+    4. StringLiteral
+      a. Unchanges
+    5. ExpressionStatement (new)
+      a. Represent a line of our program. 
+      b. A Program can have many Expressions.
+      c. An Expression can (maybe?) have many CallExpressions
+*/
 
 /** Transformer function, as per https://the-super-tiny-compiler.glitch.me/transformer */
 // So we have our transformer function which will accept the lisp ast.
 export function transformer(
-  ast: SimpleAST | SimpleASTWithContext
+  ast: SimpleAST | (SimpleAST & WithContext)
 ): TransformedAST {
   // We'll create a `newAst` which like our previous AST will have a program
   // node, and its contents inside the body property
@@ -964,7 +991,7 @@ export function transformer(
     },
 
     // Finally, 'Program'. It doesn't have anything, but for the sake of TypeScript types, it needs to exist.
-    Program: { enter: () => undefined, exit() {} }
+    Program: { enter: () => undefined, exit: () => undefined }
   });
 
   // At the end of our transformer function we'll return the new ast that we
@@ -984,7 +1011,6 @@ export function transformer(
  * Our code generator is going to recursively call itself to print each node in
  * the tree into one giant string.
  */
-
 export function codeGenerator(node: TransformedASTNode): string {
   // We'll break things down by the `type` of the `node`.
   switch (node.type) {

@@ -21,6 +21,11 @@ interface NameToken {
 /** Lex Token */
 export type Token = ParenToken | NumberToken | StringToken | NameToken;
 
+/** When something has a context property */
+export interface WithContext {
+  _context: TransformedASTNode[];
+}
+
 interface NumberLiteralNode {
   type: "NumberLiteral";
 
@@ -70,15 +75,13 @@ export type ParserNode =
   | SimpleAST;
 
 /// Old Visitor that I had to comment out since it did not offer flexibility on the type on the 'node' argument
-// export type OldVisitor = Record<
+// export type OlderVisitor = Record<
 //   ParserNode["type"],
 //   {
 //     enter?: (node: ParserNode, parent: ParserNode | null) => void;
 //     exit?: (node: ParserNode, parent: ParserNode | null) => void;
 //   }
 // >;
-
-// TODO: The Parent argument here has to be an intermediary ParserNode (A ParserNode with _context)
 /**
  * Object that follows the Visitor pattern for our AST.
  * Each option from ParserNode is mapped to an {enter, send} object
@@ -87,18 +90,18 @@ export type ASTVisitor = {
   [T in ParserNode["type"]]: {
     enter: (
       node: Extract<ParserNode, { type: T }>,
-      parent: ParserNode | null
+      parent: (ParserNode & WithContext) | null
     ) => void;
-    exit?: (
+    exit: (
       node: Extract<ParserNode, { type: T }>,
-      parent: ParserNode | null
+      parent: (ParserNode & WithContext) | null
     ) => void;
   };
 };
 
 // Transformed AST Types
 
-interface ExpressionStatementNode {
+export interface ExpressionStatementNode {
   type: "ExpressionStatement";
   expression: TransformedASTNode;
 }
