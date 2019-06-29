@@ -99,6 +99,50 @@ export type ASTVisitor = {
   };
 };
 
+/**
+ * Visitor used for the new transformer.
+ * It does not use _context as the other Visitor, and is more based around returning the new nodes instead of adding them to _context
+ */
+export interface ASTVisitor2 {
+  /** The Program visitor will only have one usecase: it returns the new AST  */
+  Program: {
+    enter: (node: SimpleAST) => TransformedAST;
+  };
+
+  /**
+   * Call Expression visitor will have two use cases:
+   *  1. Parent is the root node, therefore return an Expression
+   *  2. Parent node is another CallExpression, therefore return a new call expression
+   */
+  CallExpression: {
+    enter:
+      | ((
+          node: CallExpressionNode,
+          parent: SimpleAST
+        ) => ExpressionStatementNode)
+      | ((
+          node: CallExpressionNode,
+          parent: CallExpressionNode
+        ) => TransformedCallExpressionNode);
+  };
+
+  /** String Literal has a simple use case: return a new String Literal */
+  StringLiteral: {
+    enter: (
+      node: NumberLiteralNode,
+      parent: CallExpressionNode
+    ) => StringLiteralNode;
+  };
+
+  /** Number Literal has a simple use case: return a new Number Literal */
+  NumberLiteral: {
+    enter: (
+      node: NumberLiteralNode,
+      parent: CallExpressionNode
+    ) => NumberLiteralNode;
+  };
+}
+
 // Transformed AST Types
 
 export interface ExpressionStatementNode {
