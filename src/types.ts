@@ -40,7 +40,7 @@ export interface CallExpressionNode {
   /** Name of the calling function */
   name: string;
 
-  params: ASTBodyNode[];
+  params: (NumberLiteralNode | StringLiteralNode | CallExpressionNode)[];
 }
 
 /** Abstract Syntax Tree, the node tree after being parsed by the Parser */
@@ -56,6 +56,7 @@ export type ASTBodyNode =
   | NumberLiteralNode
   | StringLiteralNode
   | CallExpressionNode;
+
 export type ParserNode = ASTBodyNode | SimpleAST;
 
 /// Old Visitor that I had to comment out since it did not offer flexibility on the type on the 'node' argument
@@ -115,14 +116,19 @@ export interface ASTVisitor2 {
 
 export interface ExpressionStatementNode {
   type: "ExpressionStatement";
-  expression: TransformedASTNode;
+  expression: TransformedCallExpressionNode;
 }
 
 export interface TransformedCallExpressionNode {
   type: CallExpressionNode["type"];
   callee: IdentifierNode;
-  arguments: TransformedASTNode[];
+  arguments: TransformedArgumentNode[];
 }
+/** Type alias for Call, Number, and String nodes */
+export type TransformedArgumentNode =
+  | TransformedCallExpressionNode
+  | NumberLiteralNode
+  | StringLiteralNode;
 
 interface IdentifierNode {
   type: "Identifier";

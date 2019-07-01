@@ -3,14 +3,12 @@
 import {
   Token,
   SimpleAST,
-  ParserNode,
   CallExpressionNode,
   TransformedASTNode,
   TransformedAST,
   ExpressionStatementNode,
-  TransformedCallExpressionNode,
   ASTBodyNode,
-  TransforedASTBodyNode
+  TransformedArgumentNode
 } from "./types";
 
 /*
@@ -700,6 +698,7 @@ export function parser(tokens: Token[]): SimpleAST {
   //
   while (current < tokens.length) {
     // fuck it.
+    // TODO: Remove the type assertion to CallExpressionNode
     ast.body.push(walk() as CallExpressionNode);
   }
 
@@ -777,37 +776,37 @@ export function parser(tokens: Token[]): SimpleAST {
 
 /** Transformer function, as per https://the-super-tiny-compiler.glitch.me/transformer */
 export function transformer(ast: SimpleAST): TransformedAST {
-  function processNode(
-    node: ASTBodyNode,
-    parent: ParserNode
-  ): TransforedASTBodyNode {
+  function processNode(node: ASTBodyNode): TransformedArgumentNode {
     switch (node.type) {
-      case "CallExpression": {
-        const newCallExpression: TransformedCallExpressionNode = {
+      case "CallExpression":
+        return {
           type: "CallExpression",
-          arguments: node.params.map(child => processNode(child, node)),
+          arguments: node.params.map(child => processNode(child)),
           callee: { type: "Identifier", name: node.name }
         };
-
-        return parent.type === "Program"
-          ? {
-              type: "ExpressionStatement",
-              expression: newCallExpression
-            }
-          : newCallExpression;
-      }
       case "NumberLiteral":
       case "StringLiteral":
         return node;
     }
   }
 
+  /** Isolate transformer that handles top level call expresions, which get turned into expression statements */
+  function processExpressionNode(
+    node: CallExpressionNode
+  ): ExpressionStatementNode {
+    return {
+      type: "ExpressionStatement",
+      expression: {
+        type: "CallExpression",
+        callee: { type: "Identifier", name: node.name },
+        arguments: node.params.map(childNode => processNode(childNode))
+      }
+    };
+  }
+
   const newAST: TransformedAST = {
     type: "Program",
-    body: ast.body.map(
-      bodyNode => processNode(bodyNode, ast)
-      // fuck it
-    ) as ExpressionStatementNode[]
+    body: ast.body.map(bodyNode => processExpressionNode(bodyNode))
   };
 
   return newAST;

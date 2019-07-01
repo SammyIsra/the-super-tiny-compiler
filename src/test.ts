@@ -5,9 +5,9 @@ import {
   codeGenerator,
   compiler
 } from "./the-super-tiny-compiler";
-import assert from "assert";
+import { strict as assert } from "assert";
 
-import { Token, SimpleAST } from "./types";
+import { Token, SimpleAST, TransformedAST } from "./types";
 
 const input = "(add 2 (subtract 4 2))";
 const output = "add(2, subtract(4, 2));";
@@ -54,7 +54,7 @@ const ast: SimpleAST = {
   ]
 };
 
-const newAst = {
+const newAst: TransformedAST = {
   type: "Program",
   body: [
     {
@@ -98,21 +98,25 @@ assert.deepStrictEqual(
   tokens,
   "Tokenizer should turn `input` string into `tokens` array"
 );
+
 assert.deepStrictEqual(
   parser(tokens),
   ast,
   "Parser should turn `tokens` array into `ast`"
 );
+
 assert.deepStrictEqual(
   transformer(ast),
   newAst,
   "Transformer should turn `ast` into a `newAst`"
 );
+
 assert.deepStrictEqual(
   codeGenerator(newAst),
   output,
   "Code Generator should turn `newAst` into `output` string"
 );
+
 assert.deepStrictEqual(
   compiler(input),
   output,
