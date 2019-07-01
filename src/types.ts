@@ -40,7 +40,7 @@ export interface CallExpressionNode {
   /** Name of the calling function */
   name: string;
 
-  params: (NumberLiteralNode | StringLiteralNode | CallExpressionNode)[];
+  params: ASTBodyNode[];
 }
 
 /** Abstract Syntax Tree, the node tree after being parsed by the Parser */
