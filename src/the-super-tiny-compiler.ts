@@ -5,12 +5,12 @@ import {
   SimpleAST,
   ParserNode,
   CallExpressionNode,
-  ASTVisitor,
   TransformedASTNode,
   TransformedAST,
   ExpressionStatementNode,
   TransformedCallExpressionNode,
-  WithContext
+  ASTBodyNode,
+  TransforedASTBodyNode
 } from "./types";
 
 /*
@@ -569,7 +569,7 @@ export function parser(tokens: Token[]): SimpleAST {
 
   // But this time we're going to use recursion instead of a `while` loop. So we
   // define a `walk` function.
-  function walk(): ParserNode {
+  function walk(): ASTBodyNode {
     // Inside the walk function we start by grabbing the `current` token.
     let token = tokens[current];
 
@@ -699,7 +699,8 @@ export function parser(tokens: Token[]): SimpleAST {
   //   (subtract 4 2)
   //
   while (current < tokens.length) {
-    ast.body.push(walk());
+    // fuck it.
+    ast.body.push(walk() as CallExpressionNode);
   }
 
   // At the end of our parser we'll return the AST.
@@ -707,122 +708,9 @@ export function parser(tokens: Token[]): SimpleAST {
 }
 
 /*
- * ============================================================================
- *                               THE TRAVERSER!!!
- * ============================================================================
- */
-
-/*
- * So now we have our AST, and we want to be able to visit different nodes with
- * a visitor. We need to be able to call the methods on the visitor whenever we
- * encounter a node with a matching type.
- *
- *   traverse(ast, {
- *     Program: {
- *       enter(node, parent) {
- *         // ...
- *       },
- *       exit(node, parent) {
- *         // ...
- *       },
- *     },
- *
- *     CallExpression: {
- *       enter(node, parent) {
- *         // ...
- *       },
- *       exit(node, parent) {
- *         // ...
- *       },
- *     },
- *
- *     NumberLiteral: {
- *       enter(node, parent) {
- *         // ...
- *       },
- *       exit(node, parent) {
- *         // ...
- *       },
- *     },
- *   });
- */
-
-/** Traverser function, as per https://the-super-tiny-compiler.glitch.me/traverser */
-// So we define a traverser function which accepts an AST and a
-// visitor. Inside we're going to define two functions...
-export function traverser(ast: SimpleAST, visitor: ASTVisitor): void {
-  // A `traverseArray` function that will allow us to iterate over an array and
-  // call the next function that we will define: `traverseNode`.
-  function traverseArray(
-    array: ParserNode[],
-    parent: ParserNode & WithContext
-  ): void {
-    array.forEach(child => {
-      // In this case it is fiiiiine
-      // eslint-disable-next-line @typescript-eslint/no-use-before-define
-      traverseNode(child, parent);
-    });
-  }
-
-  // `traverseNode` will accept a `node` and its `parent` node. So that it can
-  // pass both to our visitor methods.
-  function traverseNode(
-    node: ParserNode,
-    parent: (ParserNode & WithContext) | null
-  ) {
-    // In every one of the below cases:
-    //  - We call the `enter` method (guaranteed to exist and do something)
-    //  - Handle any traversal logic of the node
-    //  - Call the `exit` method (guaranteed to exist, not to do something)
-
-    switch (node.type) {
-      // We'll start with our top level `Program`. Since Program nodes have a
-      // property named body that has an array of nodes, we will call
-      // `traverseArray` to traverse down into them.
-      //
-      // (Remember that `traverseArray` will in turn call `traverseNode` so  we
-      // are causing the tree to be traversed recursively)
-      case "Program":
-        visitor[node.type].enter(node, parent);
-        traverseArray(node.body, node);
-        visitor[node.type].exit(node, parent);
-        break;
-
-      // Next we do the same with `CallExpression` and traverse their `params`.
-      case "CallExpression":
-        visitor[node.type].enter(node, parent);
-        traverseArray(node.params, node);
-        visitor[node.type].exit(node, parent);
-        break;
-
-      // In the cases of `NumberLiteral` and `StringLiteral` we don't have any
-      // child nodes to visit, so we'll just call the enter and exit methods and break.
-      case "NumberLiteral":
-        visitor[node.type].enter(node, parent);
-        visitor[node.type].exit(node, parent);
-        break;
-
-      case "StringLiteral":
-        visitor[node.type].enter(node, parent);
-        visitor[node.type].exit(node, parent);
-        break;
-
-      // And again, if we haven't recognized the node type then we'll throw an
-      // error.
-      default:
-        throw new TypeError(`Node seems to have unknown type: ${node}`);
-    }
-  }
-
-  // Finally we kickstart the traverser by calling `traverseNode` with our ast
-  // with no `parent` because the top level of the AST doesn't have a parent.
-  traverseNode(ast, null);
-}
-
-/*
- * ============================================================================
- *                              THE TRANSFORMER!!!
- * ============================================================================
+  ============================================================================
+                               THE TRANSFORMER!!!
+  ============================================================================
  */
 
 /*
@@ -888,115 +776,41 @@ export function traverser(ast: SimpleAST, visitor: ASTVisitor): void {
 */
 
 /** Transformer function, as per https://the-super-tiny-compiler.glitch.me/transformer */
-// So we have our transformer function which will accept the lisp ast.
-export function transformer(
-  ast: SimpleAST | (SimpleAST & WithContext)
-): TransformedAST {
-  // We'll create a `newAst` which like our previous AST will have a program
-  // node, and its contents inside the body property
-  const newAst: TransformedAST = {
+export function transformer(ast: SimpleAST): TransformedAST {
+  function processNode(
+    node: ASTBodyNode,
+    parent: ParserNode
+  ): TransforedASTBodyNode {
+    switch (node.type) {
+      case "CallExpression": {
+        const newCallExpression: TransformedCallExpressionNode = {
+          type: "CallExpression",
+          arguments: node.params.map(child => processNode(child, node)),
+          callee: { type: "Identifier", name: node.name }
+        };
+
+        return parent.type === "Program"
+          ? {
+              type: "ExpressionStatement",
+              expression: newCallExpression
+            }
+          : newCallExpression;
+      }
+      case "NumberLiteral":
+      case "StringLiteral":
+        return node;
+    }
+  }
+
+  const newAST: TransformedAST = {
     type: "Program",
-    body: []
+    body: ast.body.map(
+      bodyNode => processNode(bodyNode, ast)
+      // fuck it
+    ) as ExpressionStatementNode[]
   };
 
-  // Next I'm going to cheat a little and create a bit of a hack. We're going to
-  // use a property named `context` on our parent nodes that we're going to push
-  // nodes to their parent's `context`. Normally you would have a better
-  // abstraction than this, but for our purposes this keeps things simple.
-  //
-  // Just take note that the context is a reference *from* the old ast *to* the
-  // new ast.
-  ast._context = newAst.body;
-
-  // We'll start by calling the traverser function with our ast and a visitor.
-  traverser(ast, {
-    // The first visitor method accepts any `NumberLiteral`
-    NumberLiteral: {
-      // We'll visit them on enter.
-      enter(node, parent) {
-        // We'll create a new node also named `NumberLiteral` that we will push to
-        // the parent context.
-        if (parent !== null) {
-          parent._context.push({
-            type: "NumberLiteral",
-            value: node.value
-          });
-        }
-      },
-
-      exit() {}
-    },
-
-    // Next we have `StringLiteral`
-    StringLiteral: {
-      enter(node, parent) {
-        if (parent !== null) {
-          parent._context.push({
-            type: "StringLiteral",
-            value: node.value
-          });
-        }
-      },
-
-      exit() {}
-    },
-
-    // Next up, `CallExpression`.
-    CallExpression: {
-      enter(node, parent) {
-        if (!parent) {
-          throw new TypeError(
-            "Parent node of node of type CallExpression should be defined"
-          );
-        }
-        if (parent._context === undefined) {
-          throw new TypeError(
-            "Context of parent node of type CallExpression should have been defined"
-          );
-        }
-
-        if (parent.type === "CallExpression") {
-          const expressionNode: ExpressionStatementNode = {
-            type: "ExpressionStatement",
-            expression: {
-              type: "CallExpression",
-              callee: {
-                type: "Identifier",
-                name: node.name
-              },
-              arguments: []
-            }
-          };
-
-          node._context = expressionNode.expression.arguments;
-
-          parent._context.push(expressionNode);
-        } else {
-          const callExpressionNode: TransformedCallExpressionNode = {
-            type: "CallExpression",
-            callee: {
-              type: "Identifier",
-              name: node.name
-            },
-            arguments: []
-          };
-
-          node._context = callExpressionNode.arguments;
-
-          parent._context.push(callExpressionNode);
-        }
-      },
-
-      exit() {}
-    },
-
-    // Finally, 'Program'. It doesn't have anything, but for the sake of TypeScript types, it needs to exist.
-    Program: { enter: () => undefined, exit: () => undefined }
-  });
-
-  // At the end of our transformer function we'll return the new ast that we
-  // just created.
-  return newAst;
+  return newAST;
 }
 
 /*

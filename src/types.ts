@@ -21,28 +21,17 @@ interface NameToken {
 /** Lex Token */
 export type Token = ParenToken | NumberToken | StringToken | NameToken;
 
-/** When something has a context property */
-export interface WithContext {
-  _context: TransformedASTNode[];
-}
-
 interface NumberLiteralNode {
   type: "NumberLiteral";
 
   /** String representation of a number */
   value: string;
-
-  /** Link to parent context */
-  _context?: TransformedASTNode[];
 }
 
 interface StringLiteralNode {
   type: "StringLiteral";
 
   value: string;
-
-  /** Link to parent context */
-  _context?: TransformedASTNode[];
 }
 
 export interface CallExpressionNode {
@@ -51,28 +40,23 @@ export interface CallExpressionNode {
   /** Name of the calling function */
   name: string;
 
-  params: ParserNode[];
-
-  /** Link to parent context */
-  _context?: TransformedASTNode[];
+  params: ASTBodyNode[];
 }
 
 /** Abstract Syntax Tree, the node tree after being parsed by the Parser */
 export interface SimpleAST {
   type: "Program";
 
-  body: ParserNode[];
-
-  /** Link to parent context */
-  _context?: TransformedASTNode[];
+  body: CallExpressionNode[];
 }
 
 /** Single Node, after being processed by the Parser */
-export type ParserNode =
+
+export type ASTBodyNode =
   | NumberLiteralNode
   | StringLiteralNode
-  | CallExpressionNode
-  | SimpleAST;
+  | CallExpressionNode;
+export type ParserNode = ASTBodyNode | SimpleAST;
 
 /// Old Visitor that I had to comment out since it did not offer flexibility on the type on the 'node' argument
 // export type OlderVisitor = Record<
@@ -82,22 +66,6 @@ export type ParserNode =
 //     exit?: (node: ParserNode, parent: ParserNode | null) => void;
 //   }
 // >;
-/**
- * Object that follows the Visitor pattern for our AST.
- * Each option from ParserNode is mapped to an {enter, send} object
- */
-export type ASTVisitor = {
-  [T in ParserNode["type"]]: {
-    enter: (
-      node: Extract<ParserNode, { type: T }>,
-      parent: (ParserNode & WithContext) | null
-    ) => void;
-    exit: (
-      node: Extract<ParserNode, { type: T }>,
-      parent: (ParserNode & WithContext) | null
-    ) => void;
-  };
-};
 
 /**
  * Visitor used for the new transformer.
@@ -161,13 +129,13 @@ interface IdentifierNode {
   name: string;
 }
 
-export type TransformedASTNode =
+export type TransforedASTBodyNode =
   | NumberLiteralNode
   | StringLiteralNode
   | ExpressionStatementNode
   | TransformedCallExpressionNode
-  | IdentifierNode
-  | TransformedAST;
+  | IdentifierNode;
+export type TransformedASTNode = TransforedASTBodyNode | TransformedAST;
 
 export interface TransformedAST {
   type: "Program";
